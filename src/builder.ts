@@ -55,23 +55,29 @@ export interface Config {
 
 export async function clean(config: Config = {}) {
     await rm(
-        config.buildPath || defaultBuildPath, 
+        config.buildPath || defaultBuildPath,
         { recursive: true, force: true }
     );
 }
 
 async function getWinLib(): Promise<string> {
+    // Use NODE_SWIFT_TARGET_ARCH env var if set, otherwise fall back to process.arch.
+    // This is needed for cross-compilation scenarios like building ARM64 binaries
+    // on Windows ARM64 when the build tool (e.g., Bun) runs under x64 emulation.
+    const arch = process.env.NODE_SWIFT_TARGET_ARCH || process.arch;
     let filename;
-    switch (process.arch) {
+    switch (arch) {
         case "x64":
+        case "x86_64":
             filename = "node-win32-x64.lib";
             break;
         case "arm64":
+        case "aarch64":
             filename = "node-win32-arm64.lib";
             break;
         default:
             throw new Error(
-                `The arch ${process.arch} is currently unsupported by node-swift on Windows.`
+                `The arch ${arch} is currently unsupported by node-swift on Windows.`
             );
     }
     return path.join(__dirname, "..", "vendored", "node", "lib", filename);
@@ -335,7 +341,7 @@ export async function build(mode: BuildMode, config: Config = {}): Promise<strin
             path.join(buildDir, mode, libName),
             binaryPath
         );
-    
+
         if (process.platform === "darwin") {
             spawnSync(
                 "codesign",
