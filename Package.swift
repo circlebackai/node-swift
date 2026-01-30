@@ -46,6 +46,15 @@ let package = Package(
             ]
         ),
         .target(name: "CNodeAPISupport"),
+        .target(
+            name: "CNodeDelayLoadHook",
+            path: "Sources/CNodeDelayLoadHook",
+            sources: ["win_delay_load_hook.cc"],
+            publicHeadersPath: "include",
+            linkerSettings: [
+                .linkedLibrary("delayimp", .when(platforms: [.windows])),
+            ]
+        ),
         .macro(
             name: "NodeAPIMacros",
             dependencies: [
@@ -55,7 +64,15 @@ let package = Package(
         ),
         .target(
             name: "NodeAPI",
-            dependencies: ["CNodeAPI", "CNodeAPISupport", "NodeAPIMacros"]
+            dependencies: [
+                "CNodeAPI",
+                "CNodeAPISupport",
+                "NodeAPIMacros",
+                .target(name: "CNodeDelayLoadHook", condition: .when(platforms: [.windows])),
+            ],
+            linkerSettings: [
+                .unsafeFlags(["-Xlinker", "/DELAYLOAD:node.exe"], .when(platforms: [.windows])),
+            ]
         ),
         .target(
             name: "NodeModuleSupport",
