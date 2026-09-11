@@ -50,6 +50,9 @@ private final class NodeExecutor: SerialExecutor {
 
         do {
             try q.run { job.runSynchronously(on: ref) }
+        } catch let error as NodeAPIError where error.code == .closing {
+            // Match queued-job disposal when teardown supplies a null JS environment.
+            return
         } catch {
             nodeFatalError("Could not execute job on NodeActor: \(error)")
         }
